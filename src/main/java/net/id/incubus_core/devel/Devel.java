@@ -11,12 +11,13 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * A class that provides some useful tools for developers.
+ * <br>In order to get the devel to write todo files for you,
+ * you must add {@code -Dincubus_core.devel.mods=mod_id} to the VM args.
  * <br>~ Jack
  * @author gudenau
  */
@@ -26,9 +27,37 @@ public final class Devel {
     private static final boolean isDevel = FabricLoader.getInstance().isDevelopmentEnvironment();
     private static Path directory = IncubusDevel.DevelConfig.DIRECTORY;
 
-    static final Set<String> BAD_FEATURES = new HashSet<>();
+    private static final Map<Identifier, FaultTracker> COMMON_FAULT_TRACKERS = new HashMap<>();
+    @Environment(EnvType.CLIENT)
+    private static final Map<Identifier, FaultTracker> CLIENT_FAULT_TRACKERS = new HashMap<>();
+    private static final Set<Identifier> LOADED_FAULT_TRACKERS = IncubusDevel.DevelConfig.FAULT_TRACKERS;
 
     private Devel() {}
+
+    /**
+     * Registers a fault tracker. In order for this fault tracker to print
+     * things to the devel logs, add {@code -Dincubus_core.devel.fault_trackers=mod_id}
+     * to the VM arguments or don't specify {@code incubus_core.devel.fault_trackers},
+     * which defaults to executing all fault trackers.
+     */
+    public static FaultTracker registerFaultTracker(Identifier trackerId, String trackerHeader) {
+        var tracker = new FaultTracker(trackerHeader);
+        COMMON_FAULT_TRACKERS.put(trackerId, tracker);
+        return tracker;
+    }
+
+    /**
+     * Registers a fault tracker. In order for this fault tracker to print
+     * things to the devel logs, add {@code -Dincubus_core.devel.fault_trackers=mod_id}
+     * to the VM arguments or don't specify {@code incubus_core.devel.fault_trackers},
+     * which defaults to executing all fault trackers.
+     */
+    @Environment(EnvType.CLIENT)
+    public static FaultTracker registerClientFaultTracker(Identifier trackerId, String trackerHeader) {
+        var tracker = new FaultTracker(trackerHeader);
+        CLIENT_FAULT_TRACKERS.put(trackerId, tracker);
+        return tracker;
+    }
 
     static void init() {
         if (MOD_IDS.length == 0) {
@@ -46,9 +75,25 @@ public final class Devel {
                 e.printStackTrace();
             }
         }
+
         IncubusCore.LOG.info("Devels loaded for: {}.", String.join(", ", MOD_IDS));
+        String faultTrackers = LOADED_FAULT_TRACKERS.stream().map(Identifier::toString)
+                .collect(Collectors.joining(", "));
+
+        if (!faultTrackers.isEmpty()) {
+            IncubusCore.LOG.info("Fault trackers loaded: {}", faultTrackers);
+        } else {
+            IncubusCore.LOG.info("All fault trackers loaded");
+        }
         // Save on shutdown
-        Runtime.getRuntime().addShutdownHook(new Thread(Devel::save));
+        Runtime.getRuntime().addShutdownHook(new Thread(Devel::commonSave));
+    }
+
+    @Environment(EnvType.CLIENT)
+    static void clientInit(){
+        // We don't need to do all the fancy stuff for this method, since
+        // it should already be covered by the common init.
+        Runtime.getRuntime().addShutdownHook(new Thread(Devel::clientSave));
     }
 
     /**
@@ -58,72 +103,71 @@ public final class Devel {
         return isDevel;
     }
 
-    private static void save(){
+    private static void commonSave() {
+        save("common", COMMON_FAULT_TRACKERS);
+    }
+
+    @Environment(EnvType.CLIENT)
+    private static void clientSave() {
+        save("client", CLIENT_FAULT_TRACKERS);
+    }
+
+    private static void save(String env, Map<Identifier, FaultTracker> faultTrackers){
         for (var mod_id : MOD_IDS) {
-            IncubusCore.LOG.info("Saving devel log for {}.", mod_id);
-            var logFile = directory.resolve(Path.of(mod_id + "_todo_server.txt"));
+            IncubusCore.LOG.info("Saving {} devel log for {}.", env, mod_id);
+            var logFile = directory.resolve(Path.of(mod_id + "_todo_" + env + ".txt"));
 
             try (var writer = new UncheckedWriter(Files.newBufferedWriter(logFile, StandardCharsets.UTF_8))) {
-                dumpStrings(mod_id, writer, "Bad features", BAD_FEATURES);
-            } catch (UncheckedIOException | IOException e) {
-                IncubusCore.LOG.error("Failed to write \"{}\" devel log for mod \"{}\".", logFile.toString(), mod_id);
+                faultTrackers.forEach((trackerId, tracker) -> {
+                    if (LOADED_FAULT_TRACKERS.size() > 0 && !LOADED_FAULT_TRACKERS.contains(trackerId)) return;
+                    try {
+                        dumpStrings(mod_id, writer, tracker);
+                    } catch (UncheckedIOException e) {
+                        IncubusCore.LOG.error("Failed to write \"{}\" {} devel log for fault tracker \"{}\" and mod id \"{}\".", logFile.toString(), env, trackerId, mod_id);
+                    }
+                });
+            } catch (IOException e) {
+                IncubusCore.LOG.error("Failed to write \"{}\" {} devel log for mod \"{}\".", logFile.toString(), env, mod_id);
                 e.printStackTrace();
             }
         }
     }
 
-    @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
-    private static void dumpIds(String mod_id, UncheckedWriter writer, String message, Collection<Identifier> ids){
-        synchronized(ids){
-            if(!ids.isEmpty()){
-                writer.write(message + ":\n");
-                ids.stream()
-                        .filter(id -> id.getNamespace().equals(mod_id))
-                        .sorted(Identifier::compareTo)
-                        .forEachOrdered((id)->writer.write("    " + id + '\n'));
-            }
-        }
-    }
-
-    @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
-    private static void dumpStrings(String mod_id, UncheckedWriter writer, String message, Collection<String> strings){
-        synchronized(strings){
-            if(!strings.isEmpty()){
-                writer.write(message + ":\n");
-                strings.stream()
-                        .filter(s -> s.contains(mod_id))
+    private static void dumpStrings(String modId, UncheckedWriter writer, FaultTracker tracker){
+        synchronized(tracker.faults){
+            if(!tracker.faults.isEmpty()){
+                writer.write(tracker.sectionHeader + ":\n");
+                tracker.faults.get(modId).stream()
                         .sorted(String::compareTo)
                         .forEachOrdered((id)->writer.write("    " + id + '\n'));
             }
         }
     }
 
-    @Environment(EnvType.CLIENT)
-    static final class ClientDevel {
-        static final Set<Identifier> MISSING_TEXTURES = new HashSet<>();
-        static final Set<Identifier> BAD_TEXTURES = new HashSet<>();
-        static final Set<String> MISSING_LANGUAGE_KEYS = new HashSet<>();
+    /**
+     * Tracks faults, a.k.a. issues, believe it or not.
+     */
+    public static class FaultTracker {
+        protected final String sectionHeader;
+        protected final HashMap<String, Set<String>> faults;
 
-        static void clientInit(){
-            // We don't need to do all the fancy stuff for this method, since
-            // it should already be covered by the common init.
-            Runtime.getRuntime().addShutdownHook(new Thread(ClientDevel::clientSave));
+        public FaultTracker(String sectionHeader) {
+            this.sectionHeader = sectionHeader;
+            this.faults = new HashMap<>();
         }
 
-        private static void clientSave(){
-            for (var mod_id : MOD_IDS) {
-                IncubusCore.LOG.info("Saving client devel log for {}.", mod_id);
-                var logFile = directory.resolve(Path.of(mod_id + "_todo_client.txt"));
-
-                try (var writer = new UncheckedWriter(Files.newBufferedWriter(logFile, StandardCharsets.UTF_8))) {
-                    dumpIds(mod_id, writer, "Missing textures", MISSING_TEXTURES);
-                    dumpIds(mod_id, writer, "Textures with broken metadata", BAD_TEXTURES);
-                    dumpStrings(mod_id, writer, "Missing language keys", MISSING_LANGUAGE_KEYS);
-                } catch (UncheckedIOException | IOException e) {
-                    IncubusCore.LOG.error("Failed to write \"{}\" client devel log for mod \"{}\".", logFile.toString(), mod_id);
-                    e.printStackTrace();
-                }
+        public void add(String faultCauserModId, String fault) {
+            if (faults.containsKey(faultCauserModId)) {
+                faults.get(faultCauserModId).add(fault);
+            } else {
+                var faultSet = new HashSet<String>();
+                faultSet.add(fault);
+                faults.put(faultCauserModId, faultSet);
             }
+        }
+
+        public void add(Identifier fault) {
+            add(fault.getNamespace(), fault.getPath());
         }
     }
 }
