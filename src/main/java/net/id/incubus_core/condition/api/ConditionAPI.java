@@ -1,5 +1,6 @@
 package net.id.incubus_core.condition.api;
 
+import net.id.incubus_core.condition.Condition;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.util.Identifier;
@@ -17,7 +18,7 @@ import java.util.List;
 @SuppressWarnings("unused")
 @Deprecated(since = "1.7.0", forRemoval = true)
 @ApiStatus.ScheduledForRemoval
-public class ConditionAPI {
+public final class ConditionAPI {
     /**
      * @param type The {@code EntityType} to test
      * @return A list of all conditions the given entity is not immune to.

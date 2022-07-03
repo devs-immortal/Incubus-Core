@@ -1,5 +1,7 @@
 package net.id.incubus_core.condition.api;
 
+import net.id.incubus_core.condition.Condition;
+
 @SuppressWarnings("unused")
 public interface ConditionModifier {
     default float getDecayMultiplier(Condition condition) {

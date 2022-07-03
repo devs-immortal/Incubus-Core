@@ -1,14 +1,18 @@
-package net.id.incubus_core.condition.api;
+package net.id.incubus_core.condition;
 
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.id.incubus_core.condition.IncubusCondition;
+import net.fabricmc.fabric.api.event.registry.FabricRegistryBuilder;
+import net.id.incubus_core.IncubusCore;
+import net.id.incubus_core.condition.api.Persistence;
+import net.id.incubus_core.condition.api.Severity;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.tag.TagKey;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.registry.Registry;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
@@ -41,6 +45,10 @@ import java.util.stream.Collectors;
  * @see Persistence
  */
 public abstract class Condition {
+    /**
+     * The registry for Conditions, obviously.
+     */
+    public static final Registry<Condition> CONDITION_REGISTRY = FabricRegistryBuilder.createSimple(Condition.class, IncubusCore.locate("condition")).buildAndRegister();
 
     /**
      * @deprecated
@@ -97,10 +105,10 @@ public abstract class Condition {
     }
 
     /**
-     * @return The {@link Identifier} for the condition, as registered in {@link IncubusCondition#CONDITION_REGISTRY}.
+     * @return The {@link Identifier} for the condition, as registered in {@link Condition#CONDITION_REGISTRY}.
      */
     public final @Nullable Identifier getId(){
-        return IncubusCondition.CONDITION_REGISTRY.getId(this);
+        return CONDITION_REGISTRY.getId(this);
     }
 
     /**
@@ -184,7 +192,7 @@ public abstract class Condition {
      * @return The {@code Condition} corresponding to the given {@code Identifier}
      */
     public static @Nullable Condition get(Identifier id) {
-        return IncubusCondition.CONDITION_REGISTRY.get(id);
+        return CONDITION_REGISTRY.get(id);
     }
 
     /**
@@ -201,7 +209,7 @@ public abstract class Condition {
      * @return A list of all conditions the given entity is not immune to.
      */
     public static Set<Condition> getValidConditions(EntityType<?> type) {
-        return IncubusCondition.CONDITION_REGISTRY
+        return CONDITION_REGISTRY
                 .stream()
                 .filter(condition -> condition.isApplicableTo(type))
                 .collect(Collectors.toSet());

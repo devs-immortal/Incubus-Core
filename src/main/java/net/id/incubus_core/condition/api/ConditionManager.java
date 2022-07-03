@@ -6,6 +6,7 @@ import dev.onyxstudios.cca.api.v3.entity.PlayerComponent;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.loader.api.FabricLoader;
+import net.id.incubus_core.condition.Condition;
 import net.id.incubus_core.condition.IncubusCondition;
 import net.id.incubus_core.condition.base.StupidTrinketsWorkaround;
 import net.minecraft.client.world.ClientWorld;
@@ -19,7 +20,7 @@ import org.jetbrains.annotations.ApiStatus;
 import java.util.*;
 
 @SuppressWarnings({"unused", "UnstableApiUsage"})
-public class ConditionManager implements AutoSyncedComponent, CommonTickingComponent, PlayerComponent<ConditionManager> {
+public final class ConditionManager implements AutoSyncedComponent, CommonTickingComponent, PlayerComponent<ConditionManager> {
 
     private final LivingEntity target;
     private final Set<ConditionTracker> conditionTrackers = new HashSet<>();
@@ -103,8 +104,8 @@ public class ConditionManager implements AutoSyncedComponent, CommonTickingCompo
      */
     public boolean removeAll(){
         return conditionTrackers.stream().allMatch((tracker) ->
-                set(tracker.parent, Persistence.TEMPORARY, 0)
-                        && set(tracker.parent, Persistence.CHRONIC, 0));
+                set(tracker.getCondition(), Persistence.TEMPORARY, 0)
+                        && set(tracker.getCondition(), Persistence.CHRONIC, 0));
     }
 
     /**
@@ -305,8 +306,8 @@ public class ConditionManager implements AutoSyncedComponent, CommonTickingCompo
 
         public void add(Persistence persistence, float amount) {
             switch (persistence) {
-                case TEMPORARY -> tempVal = Math.min(parent.maxTemp, tempVal + amount);
-                case CHRONIC -> chronVal = Math.min(parent.maxChron, chronVal + amount);
+                case TEMPORARY -> tempVal = Math.min(getCondition().maxTemp, tempVal + amount);
+                case CHRONIC -> chronVal = Math.min(getCondition().maxChron, chronVal + amount);
             }
         }
 

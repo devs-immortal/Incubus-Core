@@ -11,7 +11,7 @@ import java.util.stream.Collectors;
 
 // TODO this is stupid. It works, probably, but it's stupid.
 // This class only gets loaded if trinkets exists
-public class StupidTrinketsWorkaround {
+public final class StupidTrinketsWorkaround {
     public static List<ItemStack> getTrinketStuffs(Entity player) {
         return TrinketsApi.TRINKET_COMPONENT.get(player)
                 .getEquipped(stack -> stack.getItem() instanceof ConditionModifier)

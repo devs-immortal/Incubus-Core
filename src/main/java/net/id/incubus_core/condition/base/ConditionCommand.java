@@ -8,8 +8,7 @@ import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import net.id.incubus_core.IncubusCore;
-import net.id.incubus_core.condition.IncubusCondition;
-import net.id.incubus_core.condition.api.Condition;
+import net.id.incubus_core.condition.Condition;
 import net.id.incubus_core.condition.api.ConditionManager;
 import net.id.incubus_core.condition.api.Persistence;
 import net.id.incubus_core.condition.api.Severity;
@@ -31,7 +30,7 @@ import java.util.concurrent.CompletableFuture;
 import static net.minecraft.server.command.CommandManager.argument;
 import static net.minecraft.server.command.CommandManager.literal;
 
-public class ConditionCommand {
+public final class ConditionCommand {
 
     public static final ConditionSuggester CONDITION_SUGGESTER = new ConditionSuggester();
     public static final SeveritySuggester SEVERITY_SUGGESTER = new SeveritySuggester();
@@ -214,7 +213,7 @@ public class ConditionCommand {
     public static class ConditionSuggester implements SuggestionProvider<ServerCommandSource> {
         @Override
         public CompletableFuture<Suggestions> getSuggestions(CommandContext<ServerCommandSource> context, SuggestionsBuilder builder) {
-            IncubusCondition.CONDITION_REGISTRY.getIds().forEach(id -> builder.suggest(id.toString()));
+            Condition.CONDITION_REGISTRY.getIds().forEach(id -> builder.suggest(id.toString()));
             return builder.buildFuture();
         }
     }

@@ -4,8 +4,7 @@ import net.fabricmc.fabric.api.client.itemgroup.FabricItemGroupBuilder;
 import net.fabricmc.fabric.api.item.v1.FabricItemSettings;
 import net.fabricmc.loader.api.FabricLoader;
 import net.id.incubus_core.IncubusCore;
-import net.id.incubus_core.condition.IncubusCondition;
-import net.id.incubus_core.condition.api.Condition;
+import net.id.incubus_core.condition.Condition;
 import net.id.incubus_core.condition.api.Severity;
 import net.id.incubus_core.dev.item.EntityDeathMessageTestItem;
 import net.id.incubus_core.woodtypefactory.api.WoodSettingsFactory;
@@ -24,7 +23,6 @@ import net.minecraft.tag.TagKey;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.registry.Registry;
 import net.minecraft.world.World;
-import org.jetbrains.annotations.NotNull;
 
 import static net.id.incubus_core.IncubusCore.*;
 import static net.minecraft.item.Items.DIAMOND;
@@ -45,18 +43,18 @@ public final class DevInit {
     private static final Item ENTITY_DEATH_MESSAGE_ITEM = new EntityDeathMessageTestItem(new FabricItemSettings().group(GROUP));
     private static final Condition TEST_CONDITION = new Condition(TagKey.of(Registry.ENTITY_TYPE_KEY, new Identifier("a")), 100, 100, 5, 5, 1, 50) {
         @Override
-        public void tick(@NotNull World world, @NotNull LivingEntity entity, @NotNull Severity severity, float rawSeverity) {
+        public void tick(World world, LivingEntity entity, Severity severity, float rawSeverity) {
         }
 
         @Override
-        public void tickPlayer(@NotNull World world, @NotNull PlayerEntity player, @NotNull Severity severity, float rawSeverity) {
+        public void tickPlayer(World world, PlayerEntity player, Severity severity, float rawSeverity) {
             if (severity.isAsOrMoreSevere(Severity.MILD)) {
                 player.addStatusEffect(new StatusEffectInstance(ZONKED, 10));
             }
         }
 
         @Override
-        public void clientTick(@NotNull ClientWorld world, @NotNull LivingEntity entity, @NotNull Severity severity, float rawSeverity) {
+        public void clientTick(ClientWorld world, LivingEntity entity, Severity severity, float rawSeverity) {
         }
     };
 
@@ -79,6 +77,6 @@ public final class DevInit {
 
     public static void clientInit() {
         INCUBUS_WOOD.registerBlockEntityRenderers();
-        Registry.register(IncubusCondition.CONDITION_REGISTRY, IncubusCore.locate("test_condition"), TEST_CONDITION);
+        Registry.register(Condition.CONDITION_REGISTRY, IncubusCore.locate("test_condition"), TEST_CONDITION);
     }
 }
