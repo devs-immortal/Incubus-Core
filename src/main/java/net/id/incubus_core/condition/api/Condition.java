@@ -14,6 +14,8 @@ import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.NoSuchElementException;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -96,7 +98,7 @@ public abstract class Condition {
     /**
      * @return The {@link Identifier} for the condition, as registered in {@link IncubusCondition#CONDITION_REGISTRY}.
      */
-    public final Identifier getId(){
+    public final @Nullable Identifier getId(){
         return IncubusCondition.CONDITION_REGISTRY.getId(this);
     }
 
@@ -160,7 +162,8 @@ public abstract class Condition {
      * @return The translation key of this condition
      */
     public final String getTranslationKey() {
-        return "condition." + this.getId().getNamespace() + ".condition." + this.getId().getPath();
+        Identifier id = Objects.requireNonNull(this.getId());
+        return "condition." + id.getNamespace() + ".condition." + id.getPath();
     }
 
     /**
@@ -172,7 +175,7 @@ public abstract class Condition {
      */
     @Deprecated(since = "1.7.0")
     public static Condition getOrThrow(Identifier id) {
-        return IncubusCondition.CONDITION_REGISTRY.getOrEmpty(id).orElseThrow((() -> new NoSuchElementException("No Condition found registered for entry: " + id)));
+        return getOrEmpty(id).orElseThrow(() -> new NoSuchElementException("No Condition found registered for entry: " + id));
     }
 
     /**
@@ -181,6 +184,15 @@ public abstract class Condition {
      */
     public static @Nullable Condition get(Identifier id) {
         return IncubusCondition.CONDITION_REGISTRY.get(id);
+    }
+
+    /**
+     * @param id The unique {@code Identifier} of the desired {@code Condition}.
+     * @return The {@code Condition} corresponding to the given {@code Identifier},
+     *         contained within an {@code Optional}.
+     */
+    public static Optional<Condition> getOrEmpty(Identifier id) {
+        return Optional.ofNullable(get(id));
     }
 
     /**

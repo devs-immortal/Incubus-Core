@@ -1,6 +1,5 @@
 package net.id.incubus_core.condition.api;
 
-import dev.emi.trinkets.api.TrinketsApi;
 import dev.onyxstudios.cca.api.v3.component.sync.AutoSyncedComponent;
 import dev.onyxstudios.cca.api.v3.component.tick.CommonTickingComponent;
 import dev.onyxstudios.cca.api.v3.entity.PlayerComponent;
@@ -14,13 +13,10 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.util.Pair;
 import net.minecraft.util.math.MathHelper;
 import org.jetbrains.annotations.ApiStatus;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @SuppressWarnings({"unused", "UnstableApiUsage"})
 public class ConditionManager implements AutoSyncedComponent, CommonTickingComponent, PlayerComponent<ConditionManager> {
@@ -75,7 +71,7 @@ public class ConditionManager implements AutoSyncedComponent, CommonTickingCompo
      * Sets the persistence of the condition to the given value
      */
     public boolean set(Condition condition, Persistence persistence, float value) {
-        return Optional.ofNullable(this.getConditionTracker(condition)).map(tracker -> {
+        return this.getConditionTracker(condition).map(tracker -> {
             switch (persistence) {
                 case TEMPORARY -> tracker.tempVal = value;
                 case CHRONIC -> tracker.chronVal = value;
@@ -90,7 +86,7 @@ public class ConditionManager implements AutoSyncedComponent, CommonTickingCompo
      * Adds the specified amount to the specified persistence.
      */
     public void add(Condition condition, Persistence persistence, float amount) {
-        Optional.ofNullable(this.getConditionTracker(condition)).ifPresent(tracker -> tracker.add(persistence, amount));
+        this.getConditionTracker(condition).ifPresent(tracker -> tracker.add(persistence, amount));
         this.trySync();
     }
 
@@ -98,7 +94,7 @@ public class ConditionManager implements AutoSyncedComponent, CommonTickingCompo
      * Removes the specified amount from the specified persistence
      */
     public void remove(Condition condition, Persistence persistence, float amount) {
-        Optional.ofNullable(this.getConditionTracker(condition)).ifPresent(tracker -> tracker.remove(persistence, amount));
+        this.getConditionTracker(condition).ifPresent(tracker -> tracker.remove(persistence, amount));
         this.trySync();
     }
 
@@ -116,7 +112,7 @@ public class ConditionManager implements AutoSyncedComponent, CommonTickingCompo
      * @param amount The percentage of the condition to remove. 0.00 means no change, 1.00 means remove all.
      */
     public void removeScaled(Condition condition, float amount) {
-        Optional.ofNullable(this.getConditionTracker(condition)).ifPresent(tracker -> {
+        this.getConditionTracker(condition).ifPresent(tracker -> {
             float partial = tracker.getPartialCondition();
             float tempPart = tracker.tempVal / partial;
             float chronPart = tracker.chronVal / partial;
@@ -149,13 +145,13 @@ public class ConditionManager implements AutoSyncedComponent, CommonTickingCompo
         return this.getScaledSeverity(condition) >= condition.visThreshold;
     }
 
-    private @Nullable ConditionTracker getConditionTracker(Condition condition){
+    private Optional<ConditionTracker> getConditionTracker(Condition condition){
         for (var tracker : conditionTrackers) {
             if (tracker.getCondition() == condition){
-                return tracker;
+                return Optional.of(tracker);
             }
         }
-        return null;
+        return Optional.empty();
     }
 
     /**
@@ -164,8 +160,8 @@ public class ConditionManager implements AutoSyncedComponent, CommonTickingCompo
      */
     public boolean tryApply(Condition condition, Persistence persistence, float amount) {
         var tracker = this.getConditionTracker(condition);
-        if(tracker != null && persistence != Persistence.CONSTANT && !isImmuneTo(condition)) {
-            tracker.add(persistence, amount);
+        if(tracker.isPresent() && persistence != Persistence.CONSTANT && !isImmuneTo(condition)) {
+            tracker.get().add(persistence, amount);
             return true;
         }
         return false;
@@ -206,7 +202,7 @@ public class ConditionManager implements AutoSyncedComponent, CommonTickingCompo
     }
 
     public float getRawCondition(Condition condition) {
-        return Optional.ofNullable(this.getConditionTracker(condition)).map(tracker -> {
+        return this.getConditionTracker(condition).map(tracker -> {
             float partial = tracker.getPartialCondition();
             partial += getActiveModifiers().stream().mapToDouble(mod -> mod.getConstantCondition(condition)).sum();
             return partial;

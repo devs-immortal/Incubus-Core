@@ -25,6 +25,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 import static net.minecraft.server.command.CommandManager.argument;
@@ -122,12 +123,14 @@ public class ConditionCommand {
     }
 
     private static int setCondition(ServerCommandSource source, Entity entity, Identifier attributeId, float value, String persistenceString) {
-        Condition condition = Condition.get(attributeId);
+        Optional<Condition> conditionOptional = Condition.getOrEmpty(attributeId);
 
-        if (condition == null) {
+        if (conditionOptional.isEmpty()) {
             source.sendError(new TranslatableText("commands.incubus_core.condition.failure.get_condition", attributeId));
             return 1;
         }
+
+        Condition condition = conditionOptional.get();
 
         if (!(entity instanceof LivingEntity target))
             return errorImmune(source, entity, condition);
@@ -197,15 +200,15 @@ public class ConditionCommand {
             return Condition.getValidConditions(target.getType());
         }
 
-        Condition condition = Condition.get(attributeId);
+        Optional<Condition> condition = Condition.getOrEmpty(attributeId);
 
-        if (condition == null) {
+        if (condition.isEmpty()) {
             // Invalid condition
             source.sendError(new TranslatableText("commands.incubus_core.condition.failure.get_condition", attributeId));
             return List.of();
         }
 
-        return List.of(condition);
+        return List.of(condition.get());
     }
 
     public static class ConditionSuggester implements SuggestionProvider<ServerCommandSource> {
@@ -219,11 +222,13 @@ public class ConditionCommand {
     public static class SeveritySuggester implements SuggestionProvider<ServerCommandSource> {
         @Override
         public CompletableFuture<Suggestions> getSuggestions(CommandContext<ServerCommandSource> context, SuggestionsBuilder builder) {
-            Condition condition = Condition.get(IdentifierArgumentType.getIdentifier(context, "condition"));
+            Optional<Condition> conditionOptional = Condition.getOrEmpty(IdentifierArgumentType.getIdentifier(context, "condition"));
 
-            if (condition == null) {
+            if (conditionOptional.isEmpty()) {
                 return builder.suggest(0).buildFuture();
             }
+
+            Condition condition = conditionOptional.get();
 
             float max = condition.scalingValue;
 
