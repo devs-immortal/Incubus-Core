@@ -17,6 +17,7 @@ import org.jetbrains.annotations.ApiStatus;
 @ApiStatus.Internal
 public final class IncubusCondition implements EntityComponentInitializer {
 
+    @ApiStatus.Internal
     public static final ComponentKey<ConditionManager> CONDITION_MANAGER_KEY = ComponentRegistry.getOrCreate(IncubusCore.locate("condition_manager"), ConditionManager.class);
 
     public static final Registry<Condition> CONDITION_REGISTRY = FabricRegistryBuilder.createSimple(Condition.class, IncubusCore.locate("condition")).buildAndRegister();

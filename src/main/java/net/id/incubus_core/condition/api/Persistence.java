@@ -37,6 +37,7 @@ public enum Persistence {
      * Use {@link #getTranslationKey()} instead. <br>
      * The translation key. <br> e.g. {@code "condition.persistence.temporary"}.
      */
+    @SuppressWarnings("DeprecatedIsStillUsed")
     @Deprecated(since = "1.7.0", forRemoval = true)
     @ApiStatus.ScheduledForRemoval
     public final String translation;

@@ -247,6 +247,7 @@ public class ConditionManager implements AutoSyncedComponent, CommonTickingCompo
     public void readFromNbt(NbtCompound tag) {
         conditionTrackers.forEach(tracker -> {
             var condition = tracker.getCondition();
+            //noinspection ConstantConditions
             if(tag.contains(condition.getId().toString())) {
                 //noinspection ConstantConditions
                 tracker.fromNbt((NbtCompound) tag.get(condition.getId().toString()));
@@ -260,6 +261,7 @@ public class ConditionManager implements AutoSyncedComponent, CommonTickingCompo
         conditionTrackers.forEach(tracker -> {
             var nbt = new NbtCompound();
             tracker.writeToNbt(nbt);
+            //noinspection ConstantConditions
             tag.put(tracker.getCondition().getId().toString(), nbt);
         });
     }
@@ -274,6 +276,7 @@ public class ConditionManager implements AutoSyncedComponent, CommonTickingCompo
     @Override
     public void copyForRespawn(ConditionManager original, boolean lossless, boolean keepInventory, boolean sameCharacter) {
         if(sameCharacter) {
+            //noinspection ConstantConditions
             PlayerComponent.super.copyForRespawn(original, lossless, keepInventory, sameCharacter);
         }
     }

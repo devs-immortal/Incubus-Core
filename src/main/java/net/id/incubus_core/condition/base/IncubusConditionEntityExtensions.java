@@ -2,7 +2,6 @@ package net.id.incubus_core.condition.base;
 
 import net.id.incubus_core.condition.IncubusCondition;
 import net.id.incubus_core.condition.api.ConditionManager;
-import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings("unused")

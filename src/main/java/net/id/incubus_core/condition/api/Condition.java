@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
  * <br>  All conditions, which extend this class, override these methods with their own effects.
  *
  * <br>  See the {@link Persistence} class for a description of {@link Persistence#TEMPORARY},
- *       {@link Persistence#CHRONIC}, and {@link Persistence#CONSTANT} {@code persistences} are.
+ *       {@link Persistence#CHRONIC}, and {@link Persistence#CONSTANT} persistences are.
  * <br>
  * <br>  Hope this helps!
  * <br>  ~ Jack. </p>
@@ -47,6 +47,7 @@ public abstract class Condition {
      * This field will become private in a later version. <br>
      * A tag containing all {@code EntityType}s which cannot get this condition.
      */
+    @SuppressWarnings("DeprecatedIsStillUsed")
     @Deprecated(since = "1.7.0", forRemoval = true)
     @ApiStatus.ScheduledForRemoval
     public final TagKey<EntityType<?>> exempt;
@@ -162,7 +163,7 @@ public abstract class Condition {
      * @return The translation key of this condition
      */
     public final String getTranslationKey() {
-        Identifier id = Objects.requireNonNull(this.getId());
+        Identifier id = Objects.requireNonNull(this.getId(), this + " has not been registered.");
         return "condition." + id.getNamespace() + ".condition." + id.getPath();
     }
 
@@ -204,5 +205,11 @@ public abstract class Condition {
                 .stream()
                 .filter(condition -> condition.isApplicableTo(type))
                 .collect(Collectors.toSet());
+    }
+
+    @Override
+    public String toString() {
+        var id = Objects.requireNonNullElse(this.getId(), "Unregistered");
+        return this.getClass().getSimpleName() + "[" + id + "]";
     }
 }
